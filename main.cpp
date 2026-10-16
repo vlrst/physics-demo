@@ -116,17 +116,23 @@ int main() {
     }
     SDL_Window *window;
     SDL_Renderer *renderer;
+    SDL_SetRenderVSync(renderer, 1); // frame rate limit 
     if (!SDL_CreateWindowAndRenderer("Tesla Roadster Physics Sim", 1280, 720, 0, &window, &renderer)) return 1;
 
 
-    const float TS = 1.f/ 240.f;
+    const float TS = 1.f/ 240.f; // 240 steps per second 
     const float PIXELS_PER_METER = 14.f;
     const float GROUND_Y = 640.f;
-    float car_y = 10.f;
+    float car_y = 10.f; 
     float car_vy = 0.f; // vertical velocity
     float elapsed_time = 0.f;
     bool landed = false;
 
+
+    float car_x = 0.f; // 
+    float car_angle = 0.f; // rad. 0 = upright; counterclockwise positive, clockwise negative
+    float car_spin = 2.f; // rad
+    float angular_accel = 0.f;
 
     double leftover_time = 0.0;
     Uint64 last_clock = SDL_GetTicksNS();
@@ -152,6 +158,8 @@ int main() {
         Uint64 current_clock = SDL_GetTicksNS();
         double frame_duration = (current_clock-last_clock) * 1e-9;
         last_clock = current_clock;
+        if (frame_duration >= 0.1) frame_duration = 0.1; // cap the frame time
+
         leftover_time += frame_duration;
 
 
@@ -161,12 +169,20 @@ int main() {
                 kinematics(car_vy, -GRAVITY, TS, vel_f, delta_d);
                 car_vy = vel_f;
                 car_y += delta_d;
+
+                // rotation physics
+                float spin_f, delta_angle;
+                kinematics(car_spin, angular_accel, TS, spin_f, delta_angle);
+                car_spin = spin_f;
+                car_angle += delta_angle;
+
                 elapsed_time += TS;
 
                 if (car_y <= 0.f) {
                     car_y = 0.f;
                     landed = true;
                     std::cout << "LAND TIME: " << elapsed_time << "sec SPEED: " << car_vy << "m/s\n";
+                    std::cout << "ANGLE : " << car_angle * 180.f/PI << " degrees\n"; // radians to degrees is radians * 180/pi
                 }
             }
             leftover_time -= TS;
@@ -182,9 +198,36 @@ int main() {
         SDL_RenderLine(renderer, 0, GROUND_Y, 1280, GROUND_Y);
         
         SDL_SetRenderDrawColor(renderer, 230, 40, 40, 255); // car is a box just cus
-        SDL_FRect box {640-20, GROUND_Y - car_y * PIXELS_PER_METER - 20, 40, 20};
-        SDL_RenderFillRect(renderer, &box);
+        
 
+        // car
+        float half_length = LENGTH / 2.f;
+        float half_height = LENGTH / 2.f;
+
+        // 4 corners of car; first corner repeats to close the outline of the car
+        float corner_x[5] = { -half_length, half_length, half_length, -half_length, -half_length };
+        float corner_y[5] = { -half_height, -half_height, half_height, half_height, -half_height };
+
+        SDL_FPoint outline[5];
+        for (int i = 0; i < 5; i++) {
+            float world_x = car_x + corner_x[i] * cosf(car_angle) - corner_y[i] * sinf(car_angle);
+            float world_y = car_x + corner_x[i] * sinf(car_angle) - corner_y[i] * cosf(car_angle);
+            outline[i].x = 640.f + world_x * PIXELS_PER_METER;
+            outline[i].y = GROUND_Y - world_y * PIXELS_PER_METER;
+        }
+
+        SDL_RenderLines(renderer, outline, 5);
+
+        float nose_x = car_x + half_length * cosf(car_angle);
+        float nose_y = car_y + half_length * sinf(car_angle);
+        SDL_RenderLine(renderer,
+        
+            640.f + car_x * PIXELS_PER_METER, GROUND_Y - car_y * PIXELS_PER_METER,
+            640.f + nose_x + PIXELS_PER_METER, GROUND_Y - nose_y * PIXELS_PER_METER 
+        
+        );
+
+        // line for debugging/seeing the direction the car is facing
 
         SDL_RenderPresent(renderer);
     }
