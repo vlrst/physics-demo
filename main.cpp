@@ -97,6 +97,17 @@ void kinematics(float initial_velocity, float acceleration, float time, float &f
 }
 
 
+
+/*
+
+Physics time step - discrete increment of time used for solve math equations to capture rapid changes and fast moving objects
+
+
+*/
+
+
+
+
 int main() {
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -107,6 +118,29 @@ int main() {
     SDL_Renderer *renderer;
     if (!SDL_CreateWindowAndRenderer("Tesla Roadster Physics Sim", 1280, 720, 0, &window, &renderer)) return 1;
 
+
+    const float TS = 1.f/ 240.f;
+    const float PIXELS_PER_METER = 14.f;
+    const float GROUND_Y = 640.f;
+    float car_y = 10.f;
+    float car_vy = 0.f; // vertical velocity
+    float elapsed_time = 0.f;
+    bool landed = false;
+
+
+    double leftover_time = 0.0;
+    Uint64 last_clock = SDL_GetTicksNS();
+    
+
+
+
+
+
+
+
+
+
+
     bool run = true;
     while (run) {
         SDL_Event event;
@@ -114,8 +148,44 @@ int main() {
             if (event.type == SDL_EVENT_QUIT) run = false;
         }
 
+
+        Uint64 current_clock = SDL_GetTicksNS();
+        double frame_duration = (current_clock-last_clock) * 1e-9;
+        last_clock = current_clock;
+        leftover_time += frame_duration;
+
+
+        while (leftover_time >= TS) {
+            if (!landed) {
+                float vel_f, delta_d;
+                kinematics(car_vy, -GRAVITY, TS, vel_f, delta_d);
+                car_vy = vel_f;
+                car_y += delta_d;
+                elapsed_time += TS;
+
+                if (car_y <= 0.f) {
+                    car_y = 0.f;
+                    landed = true;
+                    std::cout << "LAND TIME: " << elapsed_time << "sec SPEED: " << car_vy << "m/s\n";
+                }
+            }
+            leftover_time -= TS;
+        }
+
+
+
+
         SDL_SetRenderDrawColor(renderer, 15, 15, 20, 255);
         SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 120, 120, 130, 255);
+        SDL_RenderLine(renderer, 0, GROUND_Y, 1280, GROUND_Y);
+        
+        SDL_SetRenderDrawColor(renderer, 230, 40, 40, 255); // car is a box just cus
+        SDL_FRect box {640-20, GROUND_Y - car_y * PIXELS_PER_METER - 20, 40, 20};
+        SDL_RenderFillRect(renderer, &box);
+
+
         SDL_RenderPresent(renderer);
     }
     SDL_Quit();
