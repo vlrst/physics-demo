@@ -9,7 +9,7 @@
 
 
 // static vars - NOTE THIS IS A GUESS, TESLA HAS NOT GIVEN OFFICIAL SPECS AS OF OCTOBER 16TH 2026 @ 3:31PM EST
-
+static int counter = 0;
 static const float MASS = 1900.f; // kg
 //static const float LENGTH = 4.3f; // meters
 //static const float HEIGHT = 1.2f; // meters
@@ -100,7 +100,7 @@ static float alpha; // Straight line is accel and rotation is α (alpha)
 
 void kinematics(float initial_velocity, float acceleration, float time, float &final_velocity, float &delta_displacement) {
     // Vf = Vi + a(t)
-	final_velocity = initial_velocity + acceleration * time;
+	final_velocity = initial_velocity + (acceleration * time);
     // d = (1/2)(Vf+Vi) * t
 	delta_displacement = 0.5f * (final_velocity+initial_velocity) * time; // 
 }
@@ -133,7 +133,8 @@ int main() {
     const float TS = 1.f/ 240.f; // 240 steps per second 
     const float PIXELS_PER_METER = 14.f;
     const float GROUND_Y = 640.f;
-    float car_y = 10.f; 
+    float car_y = 10.f;
+	car_y = 40.f;
     float car_vel_y = 0.f; // vertical velocity
     float elapsed_time = 0.f;
     bool landed = false;
@@ -188,13 +189,16 @@ int main() {
                 car_angle += delta_angle;
 
                 elapsed_time += TS;
-
+				counter++;	
                 if (car_y <= 0.f) {
                     car_y = 0.f;
                     landed = true;
                     std::cout << "LAND TIME: " << elapsed_time << "sec SPEED: " << car_vel_y << "m/s\n";
                     std::cout << "ANGLE : " << car_angle * 180.f/PI << " degrees\n"; // radians to degrees is radians * 180/pi
-                }
+                } else {
+					std::cout << "COUNTER: " << counter << std::endl;
+					std::cout << "TIME (s): " << elapsed_time << " CURRENT VELOCITY (m/s): " << car_vel_y << std::endl;
+				} 
             }
             leftover_time -= TS;
         }

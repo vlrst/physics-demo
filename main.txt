@@ -1,8 +1,1 @@
-clang++ main.cpp \
-  -I SDL3.xcframework/macos-arm64_x86_64/SDL3.framework/Headers \
-  -F SDL3.xcframework/macos-arm64_x86_64 \
-  -framework SDL3 \
-  -Wl,-rpath,@executable_path/SDL3.xcframework/macos-arm64_x86_64 \
-  -o build && ./build
-
-
+clang++ main.cpp  -I SDL3.xcframework/macos-arm64_x86_64/SDL3.framework/Headers  -F SDL3.xcframework/macos-arm64_x86_64  -framework SDL3   -Wl,-rpath,@executable_path/SDL3.xcframework/macos-arm64_x86_64  -o build && ./build
